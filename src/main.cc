@@ -7,6 +7,7 @@
 #include <optional>
 #include <unistd.h>
 #include <regex>
+#include <termios.h>
 
 using opt_str_list = std::optional<std::vector<std::string>>;
 
@@ -16,10 +17,10 @@ static std::regex re_json_number("\\d*[.\\d*]");
 //static std::regex re_json_bool("true|false");
 
 void printUsage(void){
-    std::cout << "tsv2jsonl [-h header_names] [-a] [in_file] [out_file]" << std::endl;
+    std::cerr << "tsv2jsonl [-h header_names] [-a] [in_file] [out_file]" << std::endl;
 
-    std::cout << std::endl << "\theader_names X1,X2,X3,.." << std::endl;
-    std::cout << "\t-a autodetect types" << std::endl;
+    std::cerr << std::endl << "\theader_names X1,X2,X3,.." << std::endl;
+    std::cerr << "\t-a autodetect types" << std::endl;
 }
 
 std::string ReplaceAll(std::string &str, const char& from, const std::string& to) {
@@ -105,6 +106,28 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
     //return "test";
 }
 
+/**
+ * nice hack from: 
+ * https://bytes.com/topic/c/answers/841283-how-make-non-blocking-call-cin
+ */
+void set_stdin_block(const bool block){
+    const int fd = fileno(stdin);
+    termios flags;
+    if (tcgetattr(fd,&flags)<0) {
+        std::cerr << "not able to set flags" << std::endl;
+    }
+    // set raw (unset canonical modes)
+    flags.c_lflag &= ~ICANON; 
+    // i.e. min 1 char for blocking, 0 chars for non-blocking
+    flags.c_cc[VMIN] = block; 
+    // block if waiting for char
+    flags.c_cc[VTIME] = 0; 
+
+    if (tcsetattr(fd,TCSANOW,&flags)<0) {
+        std::cerr << "not able to set flags" << std::endl;
+    }
+}
+
 void parseTSV(std::istream &in, std::ostream &out,
     const opt_str_list &header, const bool auto_convert){
     std::stringstream tmp_field;
@@ -182,7 +205,7 @@ int main(int argc, char * argv[]){
         switch (opt) {
         case 'h':
             printUsage();
-            break;
+            exit(EXIT_SUCCESS);
         case 'n':
             // process header
             header = split(optarg, ',');
@@ -195,6 +218,9 @@ int main(int argc, char * argv[]){
             exit(EXIT_FAILURE);
         }
     }
+
+    // do not block on stdin
+    set_stdin_block(false);
 
     if ( argc - optind  == 1 ) {
         // input file defined
