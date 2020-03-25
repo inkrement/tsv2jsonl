@@ -16,9 +16,10 @@ static std::regex re_json_number("\\d*[.\\d*]");
 //static std::regex re_json_bool("true|false");
 
 void printUsage(void){
-    std::cout << "tsv2jsonl [in_file] [out_file] [-h header_spec]" << std::endl;
+    std::cout << "tsv2jsonl [-h header_names] [-a] [in_file] [out_file]" << std::endl;
 
-    std::cout << std::endl << "\theader_spec: X1,X2,X3,.." << std::endl;
+    std::cout << std::endl << "\theader_names X1,X2,X3,.." << std::endl;
+    std::cout << "\t-a autodetect types" << std::endl;
 }
 
 std::string ReplaceAll(std::string &str, const char& from, const std::string& to) {
