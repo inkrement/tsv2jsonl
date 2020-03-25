@@ -1,3 +1,7 @@
+tsv2jsonl
+*.jsonl
+.vscode
+
 # Prerequisites
 *.d
 
