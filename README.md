@@ -17,7 +17,7 @@ tsv2jsonl -a ./inc/example.tsv ./inc/example.jsonl
 
 Columnnames automatically begin with a X and are followed by the colum number (X1, X2, X3). Alternatively, one can provide the header names of the tsv:
 
-```
+```sh
 cat inc/example.tsv | tsv2jsonl -a -n id,hashtags,created_at,text,lang,retweets,coords,a_username,a_followers,a_friends,a_statuses,a_description,a_location,observation_date,geo,place,quotes,replies,favs,source
 ````
 
