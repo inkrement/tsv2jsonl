@@ -12,6 +12,9 @@ clean:
 install:
 	install tsv2jsonl /usr/local/bin
 
+uninstall:
+	rm -f /usr/local/bin/tsv2jsonl
+
 test: clean tsv2jsonl
 	rm -f inc/example.json
 	./tsv2jsonl -a inc/example.tsv inc/example.jsonl
