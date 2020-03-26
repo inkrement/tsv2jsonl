@@ -2,9 +2,12 @@
 
 Minimalistic CLI-tool to convert MySQL/MariaDB dumps (TSV-Format) to line-wise json documents (e.g., jsonlines, ndjson). 
 
-> tsv2jsonl [-h header_names] [-a] [in_file] [out_file]  
->        header_names X1,X2,X3,..  
->        -a autodetect types
+```
+tsv2jsonl [-h header_names] [-a] [in_file] [out_file]  
+        
+        -a autodetect types
+        -h define column names (default is X1, X2, ...)
+```
 
 For example, we can trasform a mysql dump `./inc/example.tsv` to jsonl and store it in `./inc/example.jsonl`.
 
