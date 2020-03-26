@@ -61,10 +61,7 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
     const opt_str_list header, const bool auto_convert){
     std::stringstream tmp_json;
 
-
-    tmp_json << fields.size() << ": ";
-
-    int i = 0;
+    uint8_t i = 0;
 
     // start json
     tmp_json << "{";
