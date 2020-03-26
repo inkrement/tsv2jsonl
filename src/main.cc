@@ -61,6 +61,9 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
     const opt_str_list header, const bool auto_convert){
     std::stringstream tmp_json;
 
+
+    tmp_json << fields.size() << ": ";
+
     int i = 0;
 
     // start json
@@ -106,28 +109,6 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
     //return "test";
 }
 
-/**
- * nice hack from: 
- * https://bytes.com/topic/c/answers/841283-how-make-non-blocking-call-cin
- */
-void set_stdin_block(const bool block){
-    const int fd = fileno(stdin);
-    termios flags;
-    if (tcgetattr(fd,&flags)<0) {
-        std::cerr << "not able to set flags" << std::endl;
-    }
-    // set raw (unset canonical modes)
-    flags.c_lflag &= ~ICANON; 
-    // i.e. min 1 char for blocking, 0 chars for non-blocking
-    flags.c_cc[VMIN] = block; 
-    // block if waiting for char
-    flags.c_cc[VTIME] = 0; 
-
-    if (tcsetattr(fd,TCSANOW,&flags)<0) {
-        std::cerr << "not able to set flags" << std::endl;
-    }
-}
-
 void parseTSV(std::istream &in, std::ostream &out,
     const opt_str_list &header, const bool auto_convert){
     std::stringstream tmp_field;
@@ -145,9 +126,18 @@ void parseTSV(std::istream &in, std::ostream &out,
         if (!escaped){
             switch (c) {
                 case '\n':
-                    // convert & clear buffer
+                    // close last field
+                    if (null_val){
+                        fields.push_back(std::nullopt);
+                        null_val = false;
+                    } else {
+                        fields.push_back(tmp_field.str());
+                    }
+
+                    // convert row
                     out << convertLine2JSONL(fields, header, auto_convert);
 
+                    // clear buffers
                     tmp_field.clear();
                     tmp_field.str(std::string());
 
@@ -193,6 +183,29 @@ std::vector<std::string> split(const std::string &str, const char &d) {
     }
 
     return result;
+}
+
+
+/**
+ * nice hack from: 
+ * https://bytes.com/topic/c/answers/841283-how-make-non-blocking-call-cin
+ */
+void set_stdin_block(const bool block){
+    const int fd = fileno(stdin);
+    termios flags;
+    if (tcgetattr(fd,&flags)<0) {
+        std::cerr << "not able to set flags" << std::endl;
+    }
+    // set raw (unset canonical modes)
+    flags.c_lflag &= ~ICANON; 
+    // i.e. min 1 char for blocking, 0 chars for non-blocking
+    flags.c_cc[VMIN] = block; 
+    // block if waiting for char
+    flags.c_cc[VTIME] = 0; 
+
+    if (tcsetattr(fd,TCSANOW,&flags)<0) {
+        std::cerr << "not able to set flags" << std::endl;
+    }
 }
 
 
