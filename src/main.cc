@@ -32,6 +32,8 @@ std::string ReplaceAll(std::string &str, const char& from, const std::string& to
     return str;
 }
 
+
+
 const std::string escapeJSON(const std::string &raw) {
     std::string escaped = raw;
     ReplaceAll(escaped, '\\', "\\\\");
@@ -55,6 +57,38 @@ std::string autoconvert(const std::string &val){
     //    return val;
 
     return "\"" + escapeJSON(val) + "\"";
+}
+
+std::string debugLine(const std::vector<std::optional<std::string>> &fields, 
+    const opt_str_list header){
+    std::stringstream tmp_json;
+
+    uint8_t i = 0;
+
+    for (std::optional<std::string> opt_f: fields){
+        // print key
+        tmp_json << "\t";
+
+        if(header.has_value() && header.value().size() > i){
+            tmp_json << header.value().at(i);
+        } else {
+            tmp_json << "X" << i + 1;
+        }
+
+        tmp_json << ": ";
+
+        // print value
+        if(opt_f.has_value()){
+            // print as string
+            tmp_json << "\"" << escapeJSON(opt_f.value()) << "\"" << std::endl;
+        } else {
+            tmp_json << "null" << std::endl;
+        }
+
+        i++;
+    }
+
+    return tmp_json.str();
 }
 
 std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fields, 
@@ -103,7 +137,6 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
     tmp_json << "}" << std::endl;
 
     return tmp_json.str();
-    //return "test";
 }
 
 void parseTSV(std::istream &in, std::ostream &out,
@@ -113,13 +146,11 @@ void parseTSV(std::istream &in, std::ostream &out,
 
     char c;
     bool escaped = false, null_val = false;
+    uint8_t tsv_line = 1, parsed_line = 1;
+    uint8_t reg_line_length = 0;
+    std::string json_string;
 
     while( in.get(c)) {
-        if (c == '\\') {
-            escaped = true;
-            continue;
-        }
-
         if (!escaped){
             switch (c) {
                 case '\n':
@@ -131,8 +162,26 @@ void parseTSV(std::istream &in, std::ostream &out,
                         fields.push_back(tmp_field.str());
                     }
 
+
                     // convert row
-                    out << convertLine2JSONL(fields, header, auto_convert);
+                    json_string = convertLine2JSONL(fields, header, auto_convert);
+
+                    if (parsed_line == 1){
+                        reg_line_length = fields.size();
+
+                        out << json_string;
+                    } else {
+                        if (fields.size() != reg_line_length) {
+                            //DEBUG
+
+                            std::cerr << std::endl << "WARN: TSV line " << unsigned(tsv_line) << " has a different length than first one." << std::endl;
+                            std::cerr << std::endl << debugLine(fields, header) << std::endl;
+                        } else {
+                            out << json_string;
+                        }
+                    }
+                    parsed_line++;
+                    tsv_line++;
 
                     // clear buffers
                     tmp_field.clear();
@@ -154,19 +203,28 @@ void parseTSV(std::istream &in, std::ostream &out,
                     tmp_field.str(std::string());
                     break;
 
+                case '\\':
+                    escaped = true;
+                    break;
+
                 default:
                     tmp_field << c;
             }
-        }
-
-        // if there is a \N it is null
-        else if ( (c == 'N') && escaped) {
-            null_val = true;
         } else {
-            tmp_field << c;
+            // escaped 
+            
+            // if there is a \N it is null
+            if ( c == 'N' ) {
+                null_val = true;
+            } else if ( c == '\n' ) {
+                tsv_line++;
+                tmp_field << c;
+            } else {
+                tmp_field << c;
+            }
+
+            escaped = false;
         }
-        
-        escaped = false;
     }
 }
 

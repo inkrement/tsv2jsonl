@@ -1,3 +1,5 @@
+*.tsv
+*.txt
 tsv2jsonl
 *.jsonl
 .vscode
