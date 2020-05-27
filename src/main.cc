@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <regex>
 #include <termios.h>
+#include "pool.h"
 
 using opt_str_list = std::optional<std::vector<std::string>>;
 
@@ -140,7 +141,7 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
 }
 
 void parseTSV(std::istream &in, std::ostream &out,
-    const opt_str_list &header, const bool auto_convert){
+    const opt_str_list &header, const bool auto_convert, u_int8_t threads = 1){
     std::stringstream tmp_field;
     std::vector<std::optional<std::string>> fields;
 
@@ -149,6 +150,9 @@ void parseTSV(std::istream &in, std::ostream &out,
     uint8_t tsv_line = 1, parsed_line = 1;
     uint8_t reg_line_length = 0;
     std::string json_string;
+    ThreadPool pool(threads);
+    std::future<std::string> res;
+    
 
     while( in.get(c)) {
         if (!escaped){
@@ -162,16 +166,23 @@ void parseTSV(std::istream &in, std::ostream &out,
                         fields.push_back(tmp_field.str());
                     }
 
-
                     // convert row
-                    json_string = convertLine2JSONL(fields, header, auto_convert);
-
+                    if (threads > 1){
+                        res = pool.enqueue(convertLine2JSONL, fields, header, auto_convert);
+                        json_string = res.get();
+                    } else {
+                        json_string = convertLine2JSONL(fields, header, auto_convert);
+                    }
+                    
+                    
                     if (parsed_line == 1){
                         reg_line_length = fields.size();
 
                         out << json_string;
                     } else {
                         if (fields.size() != reg_line_length) {
+                            out << json_string;
+
                             //DEBUG
 
                             std::cerr << std::endl << "WARN: TSV line " << unsigned(tsv_line) << " has a different length than first one." << std::endl;
@@ -180,6 +191,7 @@ void parseTSV(std::istream &in, std::ostream &out,
                             out << json_string;
                         }
                     }
+                    
                     parsed_line++;
                     tsv_line++;
 
@@ -266,10 +278,11 @@ void set_stdin_block(const bool block){
 
 int main(int argc, char * argv[]){
     int opt;
+    int threads = 1;
     std::vector<std::string> header;
     bool auto_convert = false;
 
-    while ((opt = getopt(argc, argv, "hn:a")) != -1) {
+    while ((opt = getopt(argc, argv, "hn:at:")) != -1) {
         switch (opt) {
         case 'h':
             printUsage();
@@ -281,6 +294,8 @@ int main(int argc, char * argv[]){
         case 'a':
             auto_convert = true;
             break;
+        case 't':
+            threads = atoi(optarg);
         default:
             printUsage();
             exit(EXIT_FAILURE);

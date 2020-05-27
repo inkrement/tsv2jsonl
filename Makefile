@@ -21,6 +21,6 @@ test: clean tsv2jsonl
 
 test2: clean tsv2jsonl
 	rm -f inc/example.json
-	./tsv2jsonl -a inc/example2.txt inc/example2.jsonl
+	cat inc/example2.txt inc/example2.txt inc/example2.txt inc/example2.txt |./tsv2jsonl -a > inc/example2.jsonl
 
 .PHONY : clean install test
