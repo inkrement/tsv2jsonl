@@ -278,7 +278,7 @@ void set_stdin_block(const bool block){
 
 int main(int argc, char * argv[]){
     int opt;
-    u_int8_t threads = 1;
+    int threads = 1;
     std::vector<std::string> header;
     bool auto_convert = false;
 
@@ -296,6 +296,7 @@ int main(int argc, char * argv[]){
             break;
         case 't':
             threads = atoi(optarg);
+            break;
         default:
             printUsage();
             exit(EXIT_FAILURE);
