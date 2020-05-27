@@ -261,7 +261,7 @@ void set_stdin_block(const bool block){
     const int fd = fileno(stdin);
     termios flags;
     if (tcgetattr(fd,&flags)<0) {
-        std::cerr << "not able to set flags" << std::endl;
+        //std::cerr << "not able to set flags" << std::endl;
     }
     // set raw (unset canonical modes)
     flags.c_lflag &= ~ICANON; 
@@ -271,14 +271,14 @@ void set_stdin_block(const bool block){
     flags.c_cc[VTIME] = 0; 
 
     if (tcsetattr(fd,TCSANOW,&flags)<0) {
-        std::cerr << "not able to set flags" << std::endl;
+        //std::cerr << "not able to set flags" << std::endl;
     }
 }
 
 
 int main(int argc, char * argv[]){
     int opt;
-    int threads = 1;
+    int threads = 4;
     std::vector<std::string> header;
     bool auto_convert = false;
 
@@ -310,7 +310,7 @@ int main(int argc, char * argv[]){
         // input file defined
         std::ifstream is(argv[optind]);
 
-        parseTSV(is, std::cout, std::optional(header), auto_convert);
+        parseTSV(is, std::cout, std::optional(header), auto_convert, threads);
     } else if (argc - optind  == 2) {
         // outputfile defined
         std::ifstream is(argv[optind]);
