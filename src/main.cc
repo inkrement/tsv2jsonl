@@ -278,7 +278,7 @@ void set_stdin_block(const bool block){
 
 int main(int argc, char * argv[]){
     int opt;
-    int threads = 1;
+    u_int8_t threads = 1;
     std::vector<std::string> header;
     bool auto_convert = false;
 
@@ -315,8 +315,8 @@ int main(int argc, char * argv[]){
         std::ifstream is(argv[optind]);
         std::ofstream os(argv[optind + 1]);
 
-        parseTSV(is, os, std::optional(header), auto_convert);
+        parseTSV(is, os, std::optional(header), auto_convert, threads);
     } else {
-        parseTSV(std::cin, std::cout, std::optional(header), auto_convert);
+        parseTSV(std::cin, std::cout, std::optional(header), auto_convert, threads);
     }
 }
