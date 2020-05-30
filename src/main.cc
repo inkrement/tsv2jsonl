@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <regex>
 #include <termios.h>
-#include "pool.h"
 
 using opt_str_list = std::optional<std::vector<std::string>>;
 
@@ -24,26 +23,41 @@ void printUsage(void){
     std::cerr << "\t-a autodetect types" << std::endl;
 }
 
-std::string ReplaceAll(std::string &str, const char& from, const std::string& to) {
-    size_t start_pos = 0;
-    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, 1, to);
-        start_pos += to.length();
-    }
-    return str;
-}
-
-
-
 const std::string escapeJSON(const std::string &raw) {
-    std::string escaped = raw;
-    ReplaceAll(escaped, '\\', "\\\\");
-    ReplaceAll(escaped, '\n', "\\n");
-    ReplaceAll(escaped, '\f', "\\f");
-    ReplaceAll(escaped, '\r', "\\r");
-    ReplaceAll(escaped, '\t', "\\t");
-    ReplaceAll(escaped, '\b', "\\b");
-    ReplaceAll(escaped, '"', "\\\"");
+    std::string escaped;
+    escaped.reserve(raw.length());
+
+    for (std::string::size_type i = 0; i < raw.length(); ++i) {
+        switch (raw[i]) {
+            case '"':
+                escaped += "\\\"";
+                break;
+            case '/':
+                escaped += "\\/";
+                break;
+            case '\b':
+                escaped += "\\b";
+                break;
+            case '\f':
+                escaped += "\\f";
+                break;
+            case '\n':
+                escaped += "\\n";
+                break;
+            case '\r':
+                escaped += "\\r";
+                break;
+            case '\t':
+                escaped += "\\t";
+                break;
+            case '\\':
+                escaped += "\\\\";
+                break;
+            default:
+                escaped += raw[i];
+                break;
+        }
+    }
 
     return escaped;
 }
@@ -150,9 +164,6 @@ void parseTSV(std::istream &in, std::ostream &out,
     uint8_t tsv_line = 1, parsed_line = 1;
     uint8_t reg_line_length = 0;
     std::string json_string;
-    ThreadPool pool(threads);
-    std::future<std::string> res;
-    
 
     while( in.get(c)) {
         if (!escaped){
@@ -166,14 +177,7 @@ void parseTSV(std::istream &in, std::ostream &out,
                         fields.push_back(tmp_field.str());
                     }
 
-                    // convert row
-                    if (threads > 1){
-                        res = pool.enqueue(convertLine2JSONL, fields, header, auto_convert);
-                        json_string = res.get();
-                    } else {
-                        json_string = convertLine2JSONL(fields, header, auto_convert);
-                    }
-                    
+                    json_string = convertLine2JSONL(fields, header, auto_convert);
                     
                     if (parsed_line == 1){
                         reg_line_length = fields.size();
