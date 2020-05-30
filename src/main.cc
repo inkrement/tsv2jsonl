@@ -155,8 +155,9 @@ std::string convertLine2JSONL(const std::vector<std::optional<std::string>> &fie
 }
 
 void parseTSV(std::istream &in, std::ostream &out,
-    const opt_str_list &header, const bool auto_convert, u_int8_t threads = 1){
+    const opt_str_list &header, const bool auto_convert, u_int8_t threads = 1, uint16_t max_len = 2048){
     std::stringstream tmp_field;
+    uint16_t tmp_len = 0;
     std::vector<std::optional<std::string>> fields;
 
     char c;
@@ -202,6 +203,7 @@ void parseTSV(std::istream &in, std::ostream &out,
                     // clear buffers
                     tmp_field.clear();
                     tmp_field.str(std::string());
+                    tmp_len = 0;
 
                     fields.clear();
                     break;
@@ -217,6 +219,7 @@ void parseTSV(std::istream &in, std::ostream &out,
                     
                     tmp_field.clear();
                     tmp_field.str(std::string());
+                    tmp_len = 0;
                     break;
 
                 case '\\':
@@ -224,7 +227,10 @@ void parseTSV(std::istream &in, std::ostream &out,
                     break;
 
                 default:
-                    tmp_field << c;
+                    if (tmp_len < max_len){
+                        tmp_field << c;
+                        tmp_len++;
+                    }
             }
         } else {
             // escaped 
@@ -234,9 +240,15 @@ void parseTSV(std::istream &in, std::ostream &out,
                 null_val = true;
             } else if ( c == '\n' ) {
                 tsv_line++;
-                tmp_field << c;
+                if (tmp_len < max_len){
+                    tmp_field << c;
+                    tmp_len++;
+                }
             } else {
-                tmp_field << c;
+                if (tmp_len < max_len){
+                    tmp_field << c;
+                    tmp_len++;
+                }
             }
 
             escaped = false;
